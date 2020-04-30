@@ -368,5 +368,112 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
                 }
             }
         }
+        
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Common")]
+        public async Task RunPowerShellWithExpectedBehaviour()
+        {
+            using (TestHostContext hc = new TestHostContext(this))
+            {
+                Tracing trace = hc.GetTrace();
+
+                Int32 exitCode = -1;
+                List<string> stdout = new List<string>();
+                List<string> stderr = new List<string>();
+
+                using (var processInvoker = new ProcessInvokerWrapper())
+                {
+                    processInvoker.OutputDataReceived += (object sender, ProcessDataReceivedEventArgs e) =>
+                    {
+                        stdout.Add(e.Data);
+                    };
+                    
+                    processInvoker.ErrorDataReceived += (object sender, ProcessDataReceivedEventArgs e) =>
+                    {
+                        stderr.Add(e.Data);
+                    };
+                    processInvoker.Initialize(hc);
+                    
+                    var powershellScript = Path.Combine(Path.GetTempPath(), "RunPowerShellWithExpectedBehaviour.ps1");
+                    File.WriteAllText(powershellScript, @"
+cmd /c ""echo stderr msg1 1>&2""
+cmd /c ""echo stderr msg2 1>&2""
+cmd /c ""echo stderr msg3 1>&2""
+cmd /c ""echo stdout msg1""
+");
+
+                    exitCode = await processInvoker.ExecuteAsync(
+                        "",
+                        "powershell.exe",
+                        $@"-NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File {powershellScript}",
+                        null, CancellationToken.None);
+
+                    trace.Info("Exit Code: {0}", exitCode);
+                    Assert.Equal(0, exitCode);
+
+                    
+                    trace.Info("Actual Stdout : {0}", string.Join("\n", stdout));
+                    trace.Info("Actual Stderr : {0}", string.Join("\n", stderr));
+                    Assert.Equal("stdout msg1", string.Join("\n", stdout));
+                    Assert.Equal("stderr msg1 \nstderr msg2 \nstderr msg3 ", string.Join("\n", stderr));
+                    
+                }
+            }
+        }
+        
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Common")]
+        public async Task RunPwshWithExpectedBehaviour()
+        {
+            using (TestHostContext hc = new TestHostContext(this))
+            {
+                Tracing trace = hc.GetTrace();
+
+                Int32 exitCode = -1;
+                List<string> stdout = new List<string>();
+                List<string> stderr = new List<string>();
+
+                using (var processInvoker = new ProcessInvokerWrapper())
+                {
+                    processInvoker.OutputDataReceived += (object sender, ProcessDataReceivedEventArgs e) =>
+                    {
+                        stdout.Add(e.Data);
+                    };
+                    
+                    processInvoker.ErrorDataReceived += (object sender, ProcessDataReceivedEventArgs e) =>
+                    {
+                        stderr.Add(e.Data);
+                    };
+                    processInvoker.Initialize(hc);
+                    
+                    var powershellScript = Path.Combine(Path.GetTempPath(), "RunPwshWithExpectedBehaviour.ps1");
+                    File.WriteAllText(powershellScript, @"
+cmd /c ""echo stderr msg1 1>&2""
+cmd /c ""echo stderr msg2 1>&2""
+cmd /c ""echo stderr msg3 1>&2""
+cmd /c ""echo stdout msg1""
+");
+
+                    exitCode = await processInvoker.ExecuteAsync(
+                        "",
+                        "pwsh.exe",
+                        $@"-NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -File {powershellScript}",
+                        null, CancellationToken.None);
+
+                    trace.Info("Exit Code: {0}", exitCode);
+                    Assert.Equal(0, exitCode);
+
+                    
+                    trace.Info("Actual Stdout : {0}", string.Join("\n", stdout));
+                    trace.Info("Actual Stderr : {0}", string.Join("\n", stderr));
+                    Assert.Equal("stdout msg1", string.Join("\n", stdout));
+                    Assert.Equal("stderr msg1 \nstderr msg2 \nstderr msg3 ", string.Join("\n", stderr));
+                    
+                }
+            }
+        }
+
     }
 }
